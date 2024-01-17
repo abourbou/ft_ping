@@ -4,7 +4,7 @@ NAME		=	ft_ping
 CC			=	gcc
 # FLAGS		=	-Wall -Werror -Wextra -g3
 FLAGS		=	-Wall -Wextra -g3
-HEADER		=	-I$(PATH_INC)
+HEADER		=	-I$(PATH_INC) -L$(PATH_LIBFT)
 
 # Color Code and template code
 GREY = \033[2:49;39m
@@ -27,6 +27,7 @@ WHITE = \033[1;37m
 PATH_INC	=	include
 PATH_SRC	=	src
 PATH_OBJ	=	obj
+PATH_LIBFT	=	libft
 
 # Source
 SRC			=	$(addprefix $(PATH_SRC)/, main.c \
@@ -39,8 +40,12 @@ INC_FILES	=
 
 INC			=	$(addprefix $(PATH_INC)/, $(INC_FILES))
 
+
 # Rules
-all			:	$(NAME)
+all			:	init $(NAME)
+
+init		:
+	@ make -s -C $(PATH_LIBFT)
 
 $(NAME)	:	$(OBJ) $(INC)
 	@ $(CC) $(FLAGS) $(HEADER) $(OBJ) -o $(NAME)
@@ -54,10 +59,12 @@ $(PATH_OBJ)/%.o		: 	%.c    $(INC)
 clean	:
 	@ rm -rf $(OBJ)
 	@ rm -rf obj
+	@ make -s -C $(PATH_LIBFT) clean
 
 fclean	:	clean
 	@ rm -rf $(NAME)
 	@ printf "$(CYAN)'$(NAME)'$(RESET) and all .o has been $(RED)deleted. 🗑️\n$(RESET)"
+	@ make -s -C $(PATH_LIBFT) fclean
 
 re		:	fclean all
 
