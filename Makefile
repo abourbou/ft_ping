@@ -4,7 +4,8 @@ NAME		=	ft_ping
 CC			=	gcc
 # FLAGS		=	-Wall -Werror -Wextra -g3
 FLAGS		=	-Wall -Wextra -g3
-HEADER		=	-I$(PATH_INC) -L$(PATH_LIBFT)
+HEADER		=	-I$(PATH_INC) -I$(PATH_LIBFT)/$(PATH_INC)
+LIB			=	-L$(PATH_LIBFT) -lft
 
 # Color Code and template code
 GREY = \033[2:49;39m
@@ -27,7 +28,7 @@ WHITE = \033[1;37m
 PATH_INC	=	include
 PATH_SRC	=	src
 PATH_OBJ	=	obj
-PATH_LIBFT	=	libft
+PATH_LIBFT	=	./libft
 
 # Source
 SRC			=	$(addprefix $(PATH_SRC)/, main.c \
@@ -48,7 +49,7 @@ init		:
 	@ make -s -C $(PATH_LIBFT)
 
 $(NAME)	:	$(OBJ) $(INC)
-	@ $(CC) $(FLAGS) $(HEADER) $(OBJ) -o $(NAME)
+	@ $(CC) $(FLAGS) $(HEADER) $(OBJ) -o $(NAME) $(LIB)
 	@ printf "\033[2K\r$(BLUE)$(NAME)$(RESET)$(BLUEE): $(ICONOK)Compiled [√]$(RESET)\n"
 
 $(PATH_OBJ)/%.o		: 	%.c    $(INC)
