@@ -80,6 +80,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    // Receive packet
+    while (1)
+    {
+        if (receive_icmp_message(argv[0], sock))
+            return EXIT_FAILURE;
+    }
+
     freeaddrinfo(l_addr);
     return 0;
 }

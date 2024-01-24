@@ -92,3 +92,58 @@ struct addrinfo* get_addr(char* program_name, char* addr_host)
 
     return results;
 }
+
+int receive_icmp_message(char *program_name, int sock)
+{
+    struct sockaddr_in recv_addr;
+    socklen_t recv_addr_len = sizeof(recv_addr);
+
+    char recv_packet[ICMP_ERROR_SIZE];
+    ft_bzero(recv_packet, ICMP_ERROR_SIZE);
+    struct iovec iov[1];
+    iov[0].iov_base = recv_packet;
+    iov[0].iov_len = sizeof(recv_packet);
+
+    struct msghdr msg;
+    msg.msg_name = &recv_addr;
+    msg.msg_namelen = sizeof(recv_addr);
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+
+    ssize_t bytes_received = recvmsg(sock, &msg, 0);
+    if (bytes_received == -1)
+    {
+        printf("%s: %s\n", program_name, strerror(errno));
+        return(EXIT_FAILURE);
+    }
+
+    struct iphdr* iph = (void*)recv_packet;
+    struct icmphdr *icmph;
+    icmph = (void*)(recv_packet + IP_HEADER_SIZE);
+    if(!is_our_message(iph, icmph))
+        return EXIT_SUCCESS;
+
+    printf("get message\n");
+
+    // Check if the message is ok
+    if (icmph->type != ICMP_ECHOREPLY)
+    {
+        printf("Error in the ICMP response, not ECHOREPLY\n");
+        return EXIT_SUCCESS;
+    }
+    uint64_t* start_timestamp = (void*)(recv_packet + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
+
+    uint64_t current_timestamp = get_current_time();
+
+    printf("Time diff for reception %.3fms\n",  1e-3 * (current_timestamp - *start_timestamp));
+
+    return (EXIT_SUCCESS);
+}
+
+bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
+{
+    if (iph->protocol == 1 && icmph->un.echo.sequence == _seq - 1 && icmph->un.echo.id == getpid()
+        && icmph->type != ICMP_ECHO)
+        return true;
+    return false;
+}

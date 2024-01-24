@@ -32,4 +32,6 @@ uint64_t            get_current_time(void);
 int                 create_raw_socket(void);
 void                create_icmp_echo_request(t_icmp_request *message);
 struct addrinfo*    get_addr(char* program_name, char* addr_host);
+int                 receive_icmp_message(char *program_name, int sock);
+bool                is_our_message(struct iphdr* iph, struct icmphdr* icmph);
 #endif
