@@ -1,10 +1,11 @@
 
 #include <errno.h>
+#include <sys/socket.h>
+#include <netdb.h>
 
 #include "icmp_packet.h"
 #include "utils.h"
 #include "libft.h"
-
 
 t_flags parse_arguments(int argc, char **argv)
 {
@@ -55,7 +56,7 @@ int main(int argc, char **argv)
     // Check for root access
     if (getuid() != 0)
     {
-        printf("%s requires root privileges\n", argv[0]);
+        printf("%s: Lacking privilege for icmp socket.\n", argv[0]);
         return(EXIT_FAILURE);
     }
 
@@ -69,6 +70,13 @@ int main(int argc, char **argv)
     if (sock == -1)
         return(EXIT_FAILURE);
 
+    // Get host IP
+    char hostname[NI_MAXHOST];
+    if (getnameinfo(l_addr->ai_addr, l_addr->ai_addrlen, hostname, sizeof(hostname), NULL,
+                0, NI_NUMERICHOST | NI_NUMERICSERV))
+        ft_printf("%s: could not resolve hostname\n", argv[0]);
+
+    ft_printf("PING %s (%s): %d data bytes\n", flags.host, hostname, ICMP_BODY_SIZE);
 
     // Create ICMP ECHO message
     t_icmp_request message;
@@ -83,10 +91,14 @@ int main(int argc, char **argv)
     // Receive packet
     while (1)
     {
-        if (receive_icmp_message(argv[0], sock))
+        int value = receive_icmp_message(argv[0], sock, hostname);
+        if (value == -1)
             return EXIT_FAILURE;
+        else if (value == 1)
+            break;
     }
 
     freeaddrinfo(l_addr);
+    close(sock);
     return 0;
 }

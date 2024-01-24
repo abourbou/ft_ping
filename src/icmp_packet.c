@@ -86,18 +86,15 @@ struct addrinfo* get_addr(char* program_name, char* addr_host)
 
     if (s != 0)
     {
-        ft_printf("%s: %s\n", program_name, gai_strerror(s));
+        ft_printf("%s: unknown host\n", program_name);
         return NULL;
     }
 
     return results;
 }
 
-int receive_icmp_message(char *program_name, int sock)
+int receive_icmp_message(char *program_name, int sock, char *hostname)
 {
-    struct sockaddr_in recv_addr;
-    socklen_t recv_addr_len = sizeof(recv_addr);
-
     char recv_packet[ICMP_ERROR_SIZE];
     ft_bzero(recv_packet, ICMP_ERROR_SIZE);
     struct iovec iov[1];
@@ -105,8 +102,7 @@ int receive_icmp_message(char *program_name, int sock)
     iov[0].iov_len = sizeof(recv_packet);
 
     struct msghdr msg;
-    msg.msg_name = &recv_addr;
-    msg.msg_namelen = sizeof(recv_addr);
+    ft_bzero(&msg, sizeof(struct msghdr));
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
@@ -114,30 +110,29 @@ int receive_icmp_message(char *program_name, int sock)
     if (bytes_received == -1)
     {
         printf("%s: %s\n", program_name, strerror(errno));
-        return(EXIT_FAILURE);
+        return(-1);
     }
 
     struct iphdr* iph = (void*)recv_packet;
     struct icmphdr *icmph;
     icmph = (void*)(recv_packet + IP_HEADER_SIZE);
     if(!is_our_message(iph, icmph))
-        return EXIT_SUCCESS;
-
-    printf("get message\n");
+        return 0;
 
     // Check if the message is ok
     if (icmph->type != ICMP_ECHOREPLY)
     {
         printf("Error in the ICMP response, not ECHOREPLY\n");
-        return EXIT_SUCCESS;
+        return 1;
     }
     uint64_t* start_timestamp = (void*)(recv_packet + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
 
-    uint64_t current_timestamp = get_current_time();
+    double time_response = (get_current_time() - *start_timestamp) * 1e-3;
 
-    printf("Time diff for reception %.3fms\n",  1e-3 * (current_timestamp - *start_timestamp));
+    printf("%ld bytes from %s: icmp_seq=%d ttl=%u time=%.3lf ms\n",
+        bytes_received - IP_HEADER_SIZE, hostname, _seq - 1, iph->ttl, time_response);
 
-    return (EXIT_SUCCESS);
+    return (1);
 }
 
 bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
