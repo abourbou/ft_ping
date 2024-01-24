@@ -31,13 +31,14 @@ PATH_OBJ	=	obj
 PATH_LIBFT	=	./libft
 
 # Source
-SRC			=	$(addprefix $(PATH_SRC)/, main.c \
+SRC			=	$(addprefix $(PATH_SRC)/, \
+				main.c icmp_packet.c \
 				)
 
 OBJ			=	$(addprefix $(PATH_OBJ)/, $(SRC:.c=.o))
 
 # Headers
-INC_FILES	=
+INC_FILES	= utils.h icmp_packet.h
 
 INC			=	$(addprefix $(PATH_INC)/, $(INC_FILES))
 
