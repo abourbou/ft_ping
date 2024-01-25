@@ -93,7 +93,7 @@ struct addrinfo* get_addr(char* program_name, char* addr_host)
     return results;
 }
 
-int receive_icmp_message(char *program_name, int sock, char *hostname)
+int receive_icmp_message(char *program_name, int sock, char *hostname, t_statistics* stats)
 {
     char recv_packet[ICMP_ERROR_SIZE];
     ft_bzero(recv_packet, ICMP_ERROR_SIZE);
@@ -125,12 +125,15 @@ int receive_icmp_message(char *program_name, int sock, char *hostname)
         printf("Error in the ICMP response, not ECHOREPLY\n");
         return 1;
     }
+    stats->nbr_pck_rcv++;
     uint64_t* start_timestamp = (void*)(recv_packet + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
 
     double time_response = (get_current_time() - *start_timestamp) * 1e-3;
 
     printf("%ld bytes from %s: icmp_seq=%d ttl=%u time=%.3lf ms\n",
         bytes_received - IP_HEADER_SIZE, hostname, _seq - 1, iph->ttl, time_response);
+
+    update_statistics(stats, time_response);
 
     return (1);
 }

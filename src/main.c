@@ -78,6 +78,10 @@ int main(int argc, char **argv)
 
     ft_printf("PING %s (%s): %d data bytes\n", flags.host, hostname, ICMP_BODY_SIZE);
 
+    // Init statistics
+    t_statistics stats;
+    ft_bzero(&stats, sizeof(t_statistics));
+
     // Create ICMP ECHO message
     t_icmp_request message;
     create_icmp_echo_request(&message);
@@ -87,17 +91,19 @@ int main(int argc, char **argv)
         printf("%s: %s", argv[0], strerror(errno));
         return EXIT_FAILURE;
     }
+    stats.nbr_pck_send++;
 
     // Receive packet
     while (1)
     {
-        int value = receive_icmp_message(argv[0], sock, hostname);
+        int value = receive_icmp_message(argv[0], sock, hostname, &stats);
         if (value == -1)
             return EXIT_FAILURE;
         else if (value == 1)
             break;
     }
 
+    print_statistics(flags.host, &stats);
     freeaddrinfo(l_addr);
     close(sock);
     return 0;

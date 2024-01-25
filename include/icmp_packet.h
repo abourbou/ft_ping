@@ -10,6 +10,8 @@
 #include <netdb.h>
 #include <stdbool.h>
 
+#include "utils.h"
+
 // Check https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol
 #define ICMP_BODY_SIZE 56
 #define ICMP_HEADER_SIZE sizeof(struct icmphdr)
@@ -30,6 +32,6 @@ uint64_t            get_current_time(void);
 int                 create_raw_socket(void);
 void                create_icmp_echo_request(t_icmp_request *message);
 struct addrinfo*    get_addr(char* program_name, char* addr_host);
-int                 receive_icmp_message(char *program_name, int sock, char *hostname);
+int                 receive_icmp_message(char *program_name, int sock, char *hostname, t_statistics* stats);
 bool                is_our_message(struct iphdr* iph, struct icmphdr* icmph);
 #endif

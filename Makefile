@@ -5,7 +5,7 @@ CC			=	gcc
 # FLAGS		=	-Wall -Werror -Wextra -g3
 FLAGS		=	-Wall -Wextra -g3
 HEADER		=	-I$(PATH_INC) -I$(PATH_LIBFT)/$(PATH_INC)
-LIB			=	-L$(PATH_LIBFT) -lft
+LIB			=	-L$(PATH_LIBFT) -lft -lm
 
 # Color Code and template code
 GREY = \033[2:49;39m
@@ -32,7 +32,7 @@ PATH_LIBFT	=	./libft
 
 # Source
 SRC			=	$(addprefix $(PATH_SRC)/, \
-				main.c icmp_packet.c \
+				main.c icmp_packet.c utils.c \
 				)
 
 OBJ			=	$(addprefix $(PATH_OBJ)/, $(SRC:.c=.o))
