@@ -24,6 +24,9 @@ void print_statistics(char *host, t_statistics* stats)
     double perc_loss = 100 * (double)(stats->nbr_pck_send - stats->nbr_pck_rcv) / stats->nbr_pck_send;
     printf("%d packets transmitted, %d packets received, %d%% packet loss\n",
         stats->nbr_pck_send, stats->nbr_pck_rcv, (int)perc_loss);
-    printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
-            stats->min_tt, stats->mean_tt, stats->max_tt, stats->std_dev_tt);
+    if (stats->nbr_pck_rcv)
+    {
+        printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
+                stats->min_tt, stats->mean_tt, stats->max_tt, stats->std_dev_tt);
+    }
 }
