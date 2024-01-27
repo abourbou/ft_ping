@@ -2,10 +2,25 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <signal.h>
 
 #include "icmp_packet.h"
 #include "utils.h"
 #include "libft.h"
+
+static bool g_listen = true;
+static bool g_keep_ping = true;
+
+void handle_signal(int signum)
+{
+    if (signum == SIGALRM)
+        g_listen = false;
+    else if (signum == SIGINT)
+    {
+        g_listen = false;
+        g_keep_ping = false;
+    }
+}
 
 t_flags parse_arguments(int argc, char **argv)
 {
@@ -79,6 +94,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+    // Handle signals
+    if (signal(SIGALRM, handle_signal) == SIG_ERR || signal(SIGINT, handle_signal) == SIG_ERR)
+    {
+        fprintf(stderr, "ping: error handling signals\n");
+        return EXIT_FAILURE;
+    }
+
     printf("PING %s (%s): %d data bytes", flags.host, hostname, ICMP_BODY_SIZE);
     if (flags.verbose)
         printf(", id 0x%04x = %d", getpid(), getpid());
@@ -87,25 +109,31 @@ int main(int argc, char **argv)
     t_statistics stats;
     ft_bzero(&stats, sizeof(t_statistics));
 
-    // Create ICMP ECHO message
-    t_icmp_request message;
-    create_icmp_echo_request(&message);
-
-    if (sendto(sock, &message, sizeof(message), 0, l_addr->ai_addr, l_addr->ai_addrlen) < -1)
+    while (g_keep_ping)
     {
-        printf("%s: %s", argv[0], strerror(errno));
-        return EXIT_FAILURE;
-    }
-    stats.nbr_pck_send++;
+        // Create ICMP ECHO message
+        t_icmp_request message;
+        create_icmp_echo_request(&message);
 
-    // Receive packet
-    while (1)
-    {
-        int value = receive_icmp_message(argv[0], sock, hostname, &stats);
-        if (value == -1)
+        if (sendto(sock, &message, sizeof(message), 0, l_addr->ai_addr, l_addr->ai_addrlen) < -1)
+        {
+            printf("%s: %s", argv[0], strerror(errno));
             return EXIT_FAILURE;
-        else if (value == 1)
-            break;
+        }
+        stats.nbr_pck_send++;
+        alarm(1);
+        g_listen = true;
+
+        // Receive packet
+        while (g_listen)
+        {
+            int value = receive_icmp_message(argv[0], sock, hostname, &stats);
+            if (value == -1)
+                return EXIT_FAILURE;
+            if (value == 1)
+                break;
+        }
+        while (g_listen) {}
     }
 
     print_statistics(flags.host, &stats);

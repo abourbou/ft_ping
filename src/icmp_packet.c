@@ -107,11 +107,15 @@ int receive_icmp_message(char *program_name, int sock, char *hostname, t_statist
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    ssize_t bytes_received = recvmsg(sock, &msg, 0);
+    ssize_t bytes_received = recvmsg(sock, &msg, MSG_DONTWAIT);
     if (bytes_received == -1)
     {
-        printf("%s: %s\n", program_name, strerror(errno));
-        return(-1);
+        if (errno != EAGAIN && errno != EWOULDBLOCK )
+        {
+            printf("%s: %s\n", program_name, strerror(errno));
+            return(-1);
+        }
+        return 0;
     }
 
     struct iphdr* iph = (void*)recv_packet;
