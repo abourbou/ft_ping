@@ -27,13 +27,13 @@ t_flags parse_arguments(int argc, char **argv)
 
 void    print_help_message(void)
 {
-        ft_printf("Usage: ping [OPTION...] HOST ...\n");
-        ft_printf("Send ICMP ECHO_REQUEST packets to network hosts.\n");
-        ft_printf("Options valid for all request types:\n\n");
-        ft_printf("  -v, --verbose              verbose output\n");
-        ft_printf("  -?, --help                 give this help list\n");
+        printf("Usage: ping [OPTION...] HOST ...\n");
+        printf("Send ICMP ECHO_REQUEST packets to network hosts.\n");
+        printf("Options valid for all request types:\n\n");
+        printf("  -v, --verbose              verbose output\n");
+        printf("  -?, --help                 give this help list\n");
 
-        ft_printf("\n");
+        printf("\n");
 }
 
 int main(int argc, char **argv)
@@ -48,8 +48,8 @@ int main(int argc, char **argv)
 
     if (flags.host == NULL)
     {
-        ft_printf("ping: missing host operand\n");
-        ft_printf("Try 'ping --help' or 'ping --usage' for more information.\n");
+        fprintf(stderr, "ping: missing host operand\n");
+        fprintf(stderr, "Try 'ping --help' or 'ping --usage' for more information.\n");
         return(EXIT_FAILURE);
     }
 
@@ -74,9 +74,12 @@ int main(int argc, char **argv)
     char hostname[NI_MAXHOST];
     if (getnameinfo(l_addr->ai_addr, l_addr->ai_addrlen, hostname, sizeof(hostname), NULL,
                 0, NI_NUMERICHOST | NI_NUMERICSERV))
-        ft_printf("%s: could not resolve hostname\n", argv[0]);
+    {
+        fprintf(stderr, "%s: could not resolve hostname\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-    ft_printf("PING %s (%s): %d data bytes\n", flags.host, hostname, ICMP_BODY_SIZE);
+    printf("PING %s (%s): %d data bytes\n", flags.host, hostname, ICMP_BODY_SIZE);
 
     // Init statistics
     t_statistics stats;

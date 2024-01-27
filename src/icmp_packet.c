@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <netinet/ip.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include <string.h>
 #include <errno.h>
@@ -47,7 +48,7 @@ int create_raw_socket(void)
 
     if (sock == -1)
     {
-        ft_printf("Error socket creation: %s\n", strerror(errno));
+        fprintf(stderr, "Error socket creation: %s\n", strerror(errno));
         return -1;
     }
 
@@ -86,7 +87,7 @@ struct addrinfo* get_addr(char* program_name, char* addr_host)
 
     if (s != 0)
     {
-        ft_printf("%s: unknown host\n", program_name);
+        fprintf(stderr, "%s: unknown host\n", program_name);
         return NULL;
     }
 
