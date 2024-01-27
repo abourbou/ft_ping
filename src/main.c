@@ -79,8 +79,10 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    printf("PING %s (%s): %d data bytes\n", flags.host, hostname, ICMP_BODY_SIZE);
-
+    printf("PING %s (%s): %d data bytes", flags.host, hostname, ICMP_BODY_SIZE);
+    if (flags.verbose)
+        printf(", id 0x%04x = %d", getpid(), getpid());
+    printf("\n");
     // Init statistics
     t_statistics stats;
     ft_bzero(&stats, sizeof(t_statistics));
