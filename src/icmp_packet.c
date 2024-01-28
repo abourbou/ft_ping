@@ -13,7 +13,7 @@
 #include "utils.h"
 #include "icmp_packet.h"
 
-static int _seq = 0;
+static int g_seq = 0;
 
 
 uint64_t get_current_time(void)
@@ -68,7 +68,7 @@ void create_icmp_echo_request(t_icmp_request *message)
     message->header.code = 0;
     message->header.checksum = 0;
     message->header.un.echo.id = getpid();
-    message->header.un.echo.sequence = _seq++;
+    message->header.un.echo.sequence = g_seq++;
     // Compute checksum
 	message->header.checksum = checksum((void *)message, sizeof(t_icmp_request));
 }
@@ -136,7 +136,7 @@ int receive_icmp_message(char *program_name, int sock, char *hostname, t_statist
     double time_response = (get_current_time() - *start_timestamp) * 1e-3;
 
     printf("%ld bytes from %s: icmp_seq=%d ttl=%u time=%.3lf ms\n",
-        bytes_received - IP_HEADER_SIZE, hostname, _seq - 1, iph->ttl, time_response);
+        bytes_received - IP_HEADER_SIZE, hostname, g_seq - 1, iph->ttl, time_response);
 
     update_statistics(stats, time_response);
 
@@ -145,7 +145,7 @@ int receive_icmp_message(char *program_name, int sock, char *hostname, t_statist
 
 bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
 {
-    if (iph->protocol == 1 && icmph->un.echo.sequence == _seq - 1 && icmph->un.echo.id == getpid()
+    if (iph->protocol == 1 && icmph->un.echo.sequence == g_seq - 1 && icmph->un.echo.id == getpid()
         && icmph->type != ICMP_ECHO)
         return true;
     return false;
