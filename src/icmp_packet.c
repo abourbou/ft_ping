@@ -67,7 +67,7 @@ void create_icmp_echo_request(t_icmp_request *message)
     message->header.type = ICMP_ECHO;
     message->header.code = 0;
     message->header.checksum = 0;
-    message->header.un.echo.id = htons(getpid());
+    message->header.un.echo.id = htons((uint16_t)getpid());
     message->header.un.echo.sequence = htons(g_seq++);
     // Compute checksum
 	message->header.checksum = checksum((void *)message, sizeof(t_icmp_request));
@@ -120,27 +120,23 @@ int receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool
 
     struct iphdr* iph = (void*)recv_packet;
     struct icmphdr *icmph = (void*)(recv_packet + IP_HEADER_SIZE);
-    if (icmph->type == ICMP_ECHO)
-        return 0;
-    else if (icmph->type != ICMP_ECHOREPLY)
-    {
-        struct icmphdr* icmph_data = (void*)(recv_packet + IP_HEADER_SIZE * 2 + ICMP_HEADER_SIZE);
-        if(!is_our_message(iph, icmph_data))
-            return 0;
-    }
-    else if(!is_our_message(iph, icmph) && icmph->type != ICMP_ECHO)
-        return 0;
-
     // Find ip address of the message
     char ip_addr[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &iph->saddr, ip_addr, INET_ADDRSTRLEN);
 
-    // Check if the message is ok
-    if (icmph->type != ICMP_ECHOREPLY)
+    if (iph->protocol != IPPROTO_ICMP || icmph->type == ICMP_ECHO)
+        return 0;
+    else if (icmph->type != ICMP_ECHOREPLY)
     {
+        struct icmphdr* icmph_data = (void*)(recv_packet + IP_HEADER_SIZE * 2 + ICMP_HEADER_SIZE);
+        if(!is_our_message(icmph_data))
+            return 0;
         handle_error(iph, icmph, ip_addr, bytes_received, verbose);
         return 1;
     }
+    else if(!is_our_message(icmph))
+        return 0;
+
     stats->nbr_pck_rcv++;
     uint64_t* start_timestamp = (void*)(recv_packet + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
 
@@ -154,9 +150,9 @@ int receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool
     return (1);
 }
 
-bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
+bool is_our_message(struct icmphdr* icmph)
 {
-    if (iph->protocol == 1 && ntohs(icmph->un.echo.sequence) == g_seq - 1 && ntohs(icmph->un.echo.id) == getpid())
+    if (ntohs(icmph->un.echo.sequence) == g_seq - 1 && ntohs(icmph->un.echo.id) == (uint16_t)getpid())
         return true;
     return false;
 }
@@ -164,60 +160,60 @@ bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
 void handle_error(struct iphdr* iph, struct icmphdr* icmph, char* ip_addr,
                     ssize_t bytes_received, bool verbose)
 {
-    printf("%ld bytes from %s: ", bytes_received - IP_HEADER_SIZE, ip_addr);
+    fprintf(stderr, "%ld bytes from %s: ", bytes_received - IP_HEADER_SIZE, ip_addr);
     if (icmph->type == ICMP_DEST_UNREACH)
     {
         if (icmph->code == ICMP_NET_UNREACH)
-            printf("Destination Net Unreachable");
+            fprintf(stderr, "Destination Net Unreachable");
         if (icmph->code == ICMP_HOST_UNREACH)
-            printf("Destination Host Unreachable");
+            fprintf(stderr, "Destination Host Unreachable");
         if (icmph->code == ICMP_PROT_UNREACH)
-            printf("Destination Protocol Unreachable");
+            fprintf(stderr, "Destination Protocol Unreachable");
         if (icmph->code == ICMP_PORT_UNREACH)
-            printf("Destination Port Unreachable");
+            fprintf(stderr, "Destination Port Unreachable");
         if (icmph->code == ICMP_FRAG_NEEDED)
-            printf("Fragmentation needed and DF set");
+            fprintf(stderr, "Fragmentation needed and DF set");
         if (icmph->code == ICMP_SR_FAILED)
-            printf("Source Route Failed");
+            fprintf(stderr, "Source Route Failed");
         if (icmph->code == ICMP_NET_UNKNOWN)
-            printf("Network Unknown");
+            fprintf(stderr, "Network Unknown");
         if (icmph->code == ICMP_HOST_UNKNOWN)
-            printf("Host Unknown");
+            fprintf(stderr, "Host Unknown");
         if (icmph->code == ICMP_HOST_ISOLATED)
-            printf("Host Isolated");
+            fprintf(stderr, "Host Isolated");
         if (icmph->code == ICMP_NET_UNR_TOS)
-            printf("Destination Network Unreachable At This TOS");
+            fprintf(stderr, "Destination Network Unreachable At This TOS");
         if (icmph->code == ICMP_HOST_UNR_TOS)
-            printf("Destination Host Unreachable At This TOS");
+            fprintf(stderr, "Destination Host Unreachable At This TOS");
     }
     else if(icmph->type == ICMP_REDIRECT)
     {
         if (icmph->code == ICMP_REDIR_NET)
-            printf("Redirect Network");
+            fprintf(stderr, "Redirect Network");
         if (icmph->code == ICMP_REDIR_HOST)
-            printf("Redirect Host");
+            fprintf(stderr, "Redirect Host");
         if (icmph->code == ICMP_REDIR_NETTOS)
-            printf("Redirect Type of Service and Network");
+            fprintf(stderr, "Redirect Type of Service and Network");
         if (icmph->code == ICMP_REDIR_HOSTTOS)
-            printf("Redirect Type of Service and Host");
+            fprintf(stderr, "Redirect Type of Service and Host");
     }
     else if (icmph->type == ICMP_TIME_EXCEEDED)
     {
         if(icmph->code == ICMP_EXC_TTL)
-            printf("Time to live exceeded");
+            fprintf(stderr, "Time to live exceeded");
         if(icmph->code == ICMP_EXC_FRAGTIME)
-            printf("Frag reassembly time exceeded");
+            fprintf(stderr, "Frag reassembly time exceeded");
     }
-    printf("\n");
+    fprintf(stderr, "\n");
     if (verbose)
     {
-        printf("IP hdr Dump:\n");
+        fprintf(stderr, "IP hdr Dump:\n");
         unsigned char *p_iph = (void*)((char*)iph + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
         struct iphdr *iph_data = (void*)p_iph;
         for (size_t i = 0; i < sizeof(struct iphdr); i+=2)
-            printf(" %02x%02x", p_iph[i], p_iph[i + 1]);
-        printf("\n");
-        printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
+            fprintf(stderr, " %02x%02x", p_iph[i], p_iph[i + 1]);
+        fprintf(stderr, "\n");
+        fprintf(stderr, "Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
 
         // Print readable informations
         uint16_t frag_off_backward = ntohs(iph_data->frag_off);
@@ -228,14 +224,13 @@ void handle_error(struct iphdr* iph, struct icmphdr* icmph, char* ip_addr,
         char dest_ip_addr[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &iph_data->daddr, dest_ip_addr, INET_ADDRSTRLEN);
 
-        printf(" %d  %d  %02d %04x %x   %hhx %04d  %02d  %02d %x %s  %s\n",
+        fprintf(stderr, " %d  %d  %02d %04x %x   %hhx %04d  %02d  %02d %x %s  %s\n",
             iph_data->version, iph_data->ihl, iph_data->tos, ntohs(iph_data->tot_len),
             ntohs(iph_data->id), flag, offset,
             iph_data->ttl, iph_data->protocol, ntohs(iph_data->check), src_ip_addr, dest_ip_addr);
 
         struct icmphdr* icmph_data = (void*)((char*)iph_data + IP_HEADER_SIZE);
-        printf("ptr icmp : %p , icmp_data : %p\n", icmph, icmph_data);
-        printf("ICMP: type %d, code %d, size %ld, id 0x%04x, seq 0x%04x\n",
+        fprintf(stderr, "ICMP: type %d, code %d, size %ld, id 0x%04x, seq 0x%04x\n",
             icmph_data->type, icmph_data->code, bytes_received - IP_HEADER_SIZE * 2 - ICMP_HEADER_SIZE,
             ntohs(icmph_data->un.echo.id), ntohs(icmph_data->un.echo.sequence));
     }

@@ -34,6 +34,6 @@ int                 create_raw_socket(void);
 void                create_icmp_echo_request(t_icmp_request *message);
 struct addrinfo*    get_addr(char* program_name, char* addr_host);
 int                 receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool verbose);
-bool                is_our_message(struct iphdr* iph, struct icmphdr* icmph);
+bool                is_our_message(struct icmphdr* icmph);
 void    handle_error(struct iphdr* iph, struct icmphdr* icmph, char* ip_addr, ssize_t bytes_received, bool verbose);
 #endif

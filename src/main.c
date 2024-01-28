@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
     printf("PING %s (%s): %d data bytes", flags.host, hostname, ICMP_BODY_SIZE);
     if (flags.verbose)
-        printf(", id 0x%04x = %d", getpid(), getpid());
+        printf(", id 0x%04x = %d", (uint16_t)getpid(), (uint16_t)getpid());
     printf("\n");
     // Init statistics
     t_statistics stats;
