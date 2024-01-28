@@ -119,9 +119,16 @@ int receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool
     }
 
     struct iphdr* iph = (void*)recv_packet;
-    struct icmphdr *icmph;
-    icmph = (void*)(recv_packet + IP_HEADER_SIZE);
-    if(!is_our_message(iph, icmph))
+    struct icmphdr *icmph = (void*)(recv_packet + IP_HEADER_SIZE);
+    if (icmph->type == ICMP_ECHO)
+        return 0;
+    else if (icmph->type != ICMP_ECHOREPLY)
+    {
+        struct icmphdr* icmph_data = (void*)(recv_packet + IP_HEADER_SIZE * 2 + ICMP_HEADER_SIZE);
+        if(!is_our_message(iph, icmph_data))
+            return 0;
+    }
+    else if(!is_our_message(iph, icmph) && icmph->type != ICMP_ECHO)
         return 0;
 
     // Find ip address of the message
@@ -149,8 +156,7 @@ int receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool
 
 bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
 {
-    if (iph->protocol == 1 && ntohs(icmph->un.echo.sequence) == g_seq - 1 && ntohs(icmph->un.echo.id) == getpid()
-        && icmph->type != ICMP_ECHO)
+    if (iph->protocol == 1 && ntohs(icmph->un.echo.sequence) == g_seq - 1 && ntohs(icmph->un.echo.id) == getpid())
         return true;
     return false;
 }
@@ -206,28 +212,31 @@ void handle_error(struct iphdr* iph, struct icmphdr* icmph, char* ip_addr,
     if (verbose)
     {
         printf("IP hdr Dump:\n");
-        unsigned char *p_iph = (void*)iph;
+        unsigned char *p_iph = (void*)((char*)iph + IP_HEADER_SIZE + ICMP_HEADER_SIZE);
+        struct iphdr *iph_data = (void*)p_iph;
         for (size_t i = 0; i < sizeof(struct iphdr); i+=2)
             printf(" %02x%02x", p_iph[i], p_iph[i + 1]);
         printf("\n");
         printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src      Dst     Data\n");
 
         // Print readable informations
-        uint16_t frag_off_bit = iph->frag_off;
-        short flag = *((char*)(&frag_off_bit) + 1);
-        uint16_t offset = *((char*)(&frag_off_bit) + 3);
+        uint16_t frag_off_backward = ntohs(iph_data->frag_off);
+        uint8_t flag = (frag_off_backward >> 13) & 0x07;
+        uint32_t offset = frag_off_backward & 0x1fff;
         char src_ip_addr[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &iph->saddr, src_ip_addr, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &iph_data->saddr, src_ip_addr, INET_ADDRSTRLEN);
         char dest_ip_addr[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &iph->saddr, dest_ip_addr, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &iph_data->daddr, dest_ip_addr, INET_ADDRSTRLEN);
 
-        printf(" %d  %d  %02d %04d %x   %hhx %04d  %01d   %01d %x %s  %s\n",
-            iph->version, iph->ihl, iph->tos, ntohs(iph->tot_len),
-            ntohs(iph->id), flag, offset,
-            iph->ttl, iph->protocol, ntohs(iph->check), src_ip_addr, dest_ip_addr);
+        printf(" %d  %d  %02d %04x %x   %hhx %04d  %02d  %02d %x %s  %s\n",
+            iph_data->version, iph_data->ihl, iph_data->tos, ntohs(iph_data->tot_len),
+            ntohs(iph_data->id), flag, offset,
+            iph_data->ttl, iph_data->protocol, ntohs(iph_data->check), src_ip_addr, dest_ip_addr);
 
+        struct icmphdr* icmph_data = (void*)((char*)iph_data + IP_HEADER_SIZE);
+        printf("ptr icmp : %p , icmp_data : %p\n", icmph, icmph_data);
         printf("ICMP: type %d, code %d, size %ld, id 0x%04x, seq 0x%04x\n",
-            icmph->type, icmph->code, bytes_received - IP_HEADER_SIZE,
-            ntohs(icmph->un.echo.id), ntohs(icmph->un.echo.sequence));
+            icmph_data->type, icmph_data->code, bytes_received - IP_HEADER_SIZE * 2 - ICMP_HEADER_SIZE,
+            ntohs(icmph_data->un.echo.id), ntohs(icmph_data->un.echo.sequence));
     }
 }
