@@ -2,8 +2,7 @@
 # Compilation
 NAME		=	ft_ping
 CC			=	gcc
-# FLAGS		=	-Wall -Werror -Wextra -g3
-FLAGS		=	-Wall -Wextra -g3
+FLAGS		=	-Wall -Werror -Wextra -g3
 HEADER		=	-I$(PATH_INC) -I$(PATH_LIBFT)/$(PATH_INC)
 LIB			=	-L$(PATH_LIBFT) -lft -lm
 
