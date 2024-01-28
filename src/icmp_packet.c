@@ -67,8 +67,8 @@ void create_icmp_echo_request(t_icmp_request *message)
     message->header.type = ICMP_ECHO;
     message->header.code = 0;
     message->header.checksum = 0;
-    message->header.un.echo.id = getpid();
-    message->header.un.echo.sequence = g_seq++;
+    message->header.un.echo.id = htons(getpid());
+    message->header.un.echo.sequence = htons(g_seq++);
     // Compute checksum
 	message->header.checksum = checksum((void *)message, sizeof(t_icmp_request));
 }
@@ -149,7 +149,7 @@ int receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool
 
 bool is_our_message(struct iphdr* iph, struct icmphdr* icmph)
 {
-    if (iph->protocol == 1 && icmph->un.echo.sequence == g_seq - 1 && icmph->un.echo.id == getpid()
+    if (iph->protocol == 1 && ntohs(icmph->un.echo.sequence) == g_seq - 1 && ntohs(icmph->un.echo.id) == getpid()
         && icmph->type != ICMP_ECHO)
         return true;
     return false;
