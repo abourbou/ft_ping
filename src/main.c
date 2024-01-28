@@ -127,7 +127,7 @@ int main(int argc, char **argv)
         // Receive packet
         while (g_listen)
         {
-            int value = receive_icmp_message(argv[0], sock, hostname, &stats);
+            int value = receive_icmp_message(argv[0], sock, &stats, flags.verbose);
             if (value == -1)
                 return EXIT_FAILURE;
             if (value == 1)

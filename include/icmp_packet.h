@@ -3,6 +3,7 @@
 #define ICMP_PACKET_H
 
 #include <stddef.h>
+#include <arpa/inet.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip.h>
 #include <sys/types.h>
@@ -32,6 +33,7 @@ uint64_t            get_current_time(void);
 int                 create_raw_socket(void);
 void                create_icmp_echo_request(t_icmp_request *message);
 struct addrinfo*    get_addr(char* program_name, char* addr_host);
-int                 receive_icmp_message(char *program_name, int sock, char *hostname, t_statistics* stats);
+int                 receive_icmp_message(char *program_name, int sock, t_statistics* stats, bool verbose);
 bool                is_our_message(struct iphdr* iph, struct icmphdr* icmph);
+void    handle_error(struct iphdr* iph, struct icmphdr* icmph, char* ip_addr, ssize_t bytes_received, bool verbose);
 #endif
